@@ -1,6 +1,6 @@
 {
   "name": "icallagent",
-  "description": "Place an outbound AI phone call and get a summary once it ends, backed by your iCallAgent workspace.",
+  "description": "Place outbound AI phone calls from a plain-English request, confirm before it dials, and get an AI summary once the call ends, using your own iCallAgent workspace.",
   "version": "0.1.0",
   "author": {
     "name": "iCallAgent"
