@@ -1,8 +1,8 @@
 {
   "mcpServers": {
     "icallagent": {
-      "command": "python3",
-      "args": ["${CLAUDE_PLUGIN_ROOT}/server.py"]
+      "type": "http",
+      "url": "https://api.icallagent.com/mcp"
     }
   }
 }

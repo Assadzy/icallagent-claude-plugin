@@ -2,7 +2,7 @@
 description: Place an outbound call through iCallAgent and report back what happened. Use when the user asks to call, phone, or ring someone and get told how it went.
 ---
 
-You have three tools from the `icallagent` MCP server: `icallagent_login`, `icallagent_call`, and
+You have two tools from the `icallagent` MCP server: `icallagent_call` and
 `icallagent_get_call_result`.
 
 When the user asks you to call someone:
@@ -10,9 +10,10 @@ When the user asks you to call someone:
 1. Make sure you have a clear **who** (a saved contact's name, or a phone number) and **what to
    say/find out**. Ask if either is missing — don't guess a phone number or invent talking points.
 2. Call `icallagent_call` with `target` and `message` (and `agent_name` only if the user named a
-   specific agent, or a prior error listed more than one) — leave `confirm` at its default (False).
-3. If it reports "not connected yet", call `icallagent_login`, tell the user to approve it in the
-   browser that opens, then retry from step 2.
+   specific agent, or a prior error listed more than one) — leave `confirm` at its default (false).
+3. If the tools aren't available or report that iCallAgent isn't connected, tell the user to
+   connect it (in Claude Code: run `/mcp`, pick `icallagent`, and sign in; the browser opens
+   iCallAgent's approval screen), then retry from step 2.
 4. If it reports more than one matching contact or agent, ask the user to disambiguate rather than
    picking one yourself, then retry from step 2 with the clarified target/agent_name.
 5. Otherwise it returns a preview of exactly who will be called, on what number, via which agent,
