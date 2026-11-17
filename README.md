@@ -1,83 +1,61 @@
 # iCallAgent plugin for Claude Code
 
-Ask Claude to place an outbound call ("call Jane and ask if she's still interested in renewing,
-then tell me how it went") and it will queue the call through your iCallAgent workspace, wait for
-it to finish, and summarize the outcome — using the same public API and OAuth2 flow as the
-Make.com integration.
+Ask Claude to place an outbound AI phone call in plain English — *"Call Jane and ask if she's still
+interested in renewing, then tell me how it went"* — and it will queue the call through your
+iCallAgent workspace, wait for it to finish, and summarize the outcome.
 
-Requires an existing iCallAgent account. No backend access or setup needed beyond that — the
-plugin ships with a pre-registered OAuth2 client id ("Claude Code Plugin" in iCallAgent's own
-Django admin); you just log in with your own account and pick your own workspace.
+## Requirements
 
-## One-time setup
+- An [iCallAgent](https://icallagent.com) account with at least one Live agent
+- Python 3.10+ with the `mcp` and `httpx` packages:
 
-### 1. Install Python dependencies
+  ```bash
+  pip install mcp httpx
+  ```
 
-```bash
-pip install mcp httpx
-```
+- Claude Code or Cowork. The plugin runs a small local helper on your computer, so it isn't
+  available in Claude on the web.
 
-### 2. (Only if pointing at a non-production backend)
+## Getting started
 
-```bash
-export ICALLAGENT_API_BASE=http://127.0.0.1:8000
-export ICALLAGENT_CLIENT_ID=<client id of an Application registered on THAT backend>
-```
-
-The built-in client id only exists on `api.icallagent.com`'s database — a local/staging backend
-needs its own registered Application (see [For maintainers](#for-maintainers-registering-the-oauth2-application)).
-Production users skip this step entirely.
-
-## Try it
-
-```bash
-claude --plugin-dir /path/to/claude-plugin/icallagent
-```
-
-Then, in the chat: *"Call Jane Doe, ask if she's still interested in renewing, and let me know
-what she says."* On first use Claude will call `icallagent_login`, which opens a browser to
-iCallAgent's consent screen — approve it and pick the workspace, and the login is saved to
-`~/.icallagent/credentials.json` (0600 permissions) for next time.
+1. Install the plugin from the Claude plugin directory.
+2. In a chat, ask Claude to call someone, for example: *"Call Jane Doe, ask if she's still
+   interested in renewing, and let me know what she says."*
+3. The first time, Claude will open your browser to iCallAgent's sign-in page. Approve access and
+   pick your workspace. You stay signed in after that.
 
 ## How it works
 
-- **Auth**: OAuth2 authorization-code + PKCE against `/oauth/authorize/` and `/oauth/token/`, with
-  a loopback redirect (`http://127.0.0.1:8934/callback`) — the same pattern CLIs like `gh`/`gcloud`
-  use, no client secret stored on disk.
-- **Placing a call**: resolves the agent (by name, or the workspace's only Live agent) and the
-  target (a saved contact search, or a phone number directly), auto-provisions a standing campaign
-  named `Claude Code requests — <agent>` if one isn't already active, then queues the call via
-  `POST /contacts/` — the exact path Make's "Send Contact" module and the Slack integration both
-  use (`integrations/public_views.py::queue_outbound_call`).
-- **Getting the result**: there's no server here for iCallAgent to push a `call.completed` webhook
-  to, so the plugin polls `GET /scheduled-calls/{id}/` instead, which returns an AI-generated
-  transcript summary once the call is done (reusing
-  `integrations/tasks.py::_generate_call_summary`, the same generator behind the Slack reply).
+- **You confirm before it dials.** Claude first shows exactly who will be called, on which number,
+  by which agent, and what the agent will say. Nothing is dialed until you say yes.
+- **Who to call.** Give a saved contact's name or a phone number. If more than one contact or agent
+  matches, Claude asks you which one you meant.
+- **Where calls go.** Calls are placed in a campaign named `Claude Code requests — <agent name>`,
+  which the plugin creates in your workspace the first time it's needed.
+- **Getting the result.** Claude waits for the call to finish and then reports back from the
+  AI-generated call summary. Calls aren't instant — the dialer picks them up on its normal schedule,
+  so this can take a few minutes.
 
-## For maintainers: registering the OAuth2 Application
+## Privacy and sign-in
 
-Only needed once per backend (already done for `api.icallagent.com`), or again for a separate
-staging/local backend. In Django admin → OAuth2 Provider → Applications → Add:
+- Sign-in uses OAuth in your browser; the plugin never sees your iCallAgent password.
+- Your login is saved only on your computer, at `~/.icallagent/credentials.json`, readable only by
+  your user account. Delete that file to sign out.
+- The plugin talks only to `api.icallagent.com`.
 
-| Field | Value |
-|---|---|
-| Client type | **Public** |
-| Authorization grant type | **Authorization code** |
-| Redirect URIs | `http://127.0.0.1:8934/callback` |
-| Name | `Claude Code Plugin` |
-| Skip authorization | unchecked |
+## Troubleshooting
 
-No client secret needed — PKCE is required for public clients
-(`icallagent/settings.py::_oauth2_pkce_required`). This also requires the `GET
-/api/public/v1/scheduled-calls/{id}/` endpoint and `calls:read` scope
-(`icallagent/integrations/public_views.py::ScheduledCallStatusView`) to be deployed on that backend.
+- **The browser didn't open on sign-in.** Claude will show a link you can open yourself.
+- **Sign-in fails right away.** The plugin listens on local port `8934` during sign-in; make sure
+  nothing else on your computer is using that port.
+- **"No Live agent configured".** Set up and publish an agent in your iCallAgent dashboard first.
+- **Your saved login expired.** Ask Claude to sign in to iCallAgent again.
 
-## Known limitations
+## Support
 
-- The auto-provisioned campaign can only be reused while it stays `active`; there's no public
-  endpoint to reactivate one that later gets paused/completed, so the plugin creates a fresh one
-  in that case rather than trying to update it.
-- Ambiguous contact/agent matches are surfaced as an error for Claude to ask the user about, not
-  auto-resolved.
-- The redirect port (`8934`) is fixed — set `ICALLAGENT_REDIRECT_PORT` and update the Application's
-  redirect URI to match if it's already in use on your machine.
+Visit [icallagent.com](https://icallagent.com) or the
+[API docs](https://docs.icallagent.com/api-reference/).
+
+## License
+
+[MIT](LICENSE)

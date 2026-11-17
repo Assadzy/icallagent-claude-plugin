@@ -1,9 +1,11 @@
 {
   "name": "icallagent",
   "description": "Place outbound AI phone calls from a plain-English request, confirm before it dials, and get an AI summary once the call ends, using your own iCallAgent workspace.",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": {
     "name": "iCallAgent"
   },
-  "homepage": "https://icallagent.com"
+  "homepage": "https://icallagent.com",
+  "license": "MIT",
+  "icon": "./assets/icon.svg"
 }
